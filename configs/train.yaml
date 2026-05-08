@@ -1,0 +1,89 @@
+#h
+training:
+  epochs: 180
+  grad_accum_steps: 1
+  use_amp: true
+  empty_cache_each_epoch: false
+  clip_grad_norm:
+    generator: 5.0
+    discriminator: 5.0
+
+optimizers:
+  generator:
+    name: "adam"
+    lr: 0.0002
+    betas: [0.5, 0.999]
+    weight_decay: 0.0
+
+  discriminator:
+    name: "adam"
+    lr: 0.0002
+    betas: [0.5, 0.999]
+    weight_decay: 0.0
+
+lr_scheduler:
+  name: "linear_decay_after_warmup"
+  warmup_epochs: 5
+  start_decay_epoch: 90
+  end_decay_epoch: 180
+  min_lr: 0.0000005
+
+update_schedule:
+  discriminator_steps_per_generator_step: 1
+  generator_steps_per_iteration: 1
+  freeze_discriminator_first_n_epochs: 0
+  freeze_generator_first_n_epochs: 0
+
+validation:
+  run_every_n_epochs: 1
+  max_visual_samples: 24
+  save_best_only: true
+  best_metric: "bbox_weighted_l1"
+  best_mode: "min"
+
+checkpointing:
+  enabled: true
+  save_last: true
+  save_best: true
+  save_every_n_epochs: 10
+  keep_top_k: 3
+  dir: "./outputs/checkpoints"
+
+early_stopping:
+  enabled: true
+  monitor: "bbox_weighted_l1"
+  mode: "min"
+  patience: 25
+  min_delta: 0.0005
+
+logging:
+  train_log_interval_steps: 20
+  image_log_interval_epochs: 2
+  print_gpu_memory: true
+  log_grad_norms: false
+  log_learning_rates: true
+
+sample_exports:
+  save_train_samples: true
+  save_val_samples: true
+  train_samples_per_epoch: 8
+  val_samples_per_epoch: 12
+  include_negative_cases: true
+  include_positive_cases: true
+
+stability:
+  skip_batch_if_nan_loss: true
+  skip_batch_if_invalid_bbox_crop: true
+  max_consecutive_skips: 20
+  terminate_on_repeated_nan: true
+
+final_test:
+  run_after_training: true
+  use_best_checkpoint: true
+  export_full_report: true
+  export_casebook: true
+
+reproducibility:
+  save_optimizer_state: true
+  save_scheduler_state: true
+  save_rng_state: false

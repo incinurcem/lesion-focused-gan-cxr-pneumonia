@@ -1,0 +1,92 @@
+#h
+project:
+  name: "pneumo_visibility_gan_resnet9_patchgan"
+  version: "1.0.0"
+  task: "bbox_guided_pneumonia_visibility_enhancement"
+  stage: "seminar_project_final"
+  description: >
+    Weakly-supervised generative framework for chest X-ray pneumonia visibility enhancement.
+    The generator receives the normalized full CXR together with an RSNA bbox-derived soft
+    guide map and produces a lesion-visibility-enhanced image. The discriminator operates on
+    bbox-expanded lesion crops using a conditional PatchGAN design.
+  owner: "Incinur"
+  language: "en"
+  notes: >
+    This project is deliberately separated from the deep learning final project.
+    It is research-oriented, visibility-enhancement-oriented, and manuscript-first.
+
+runtime:
+  seed: 3407
+  device_preference: "cuda"
+  amp: true
+  cudnn_benchmark: true
+  deterministic: false
+  allow_tf32: true
+  num_threads: 8
+
+paths:
+  root: "."
+  configs_dir: "./configs"
+  data_dir: "./data"
+  docs_dir: "./docs"
+  notebooks_dir: "./notebooks"
+  manuscript_dir: "./manuscript"
+
+  raw_rsna_dir: "./data/rsna"
+  dicom_dir: "./data/rsna/dicom"
+  metadata_csv: "./data/rsna/metadata.csv"
+  label_csv: "./data/rsna/stage_2_train_labels.csv"
+
+  png_dir: "./data/png"
+  cache_dir: "./data/cache"
+  split_dir: "./data/splits"
+  debug_dir: "./data/debug"
+  export_dir: "./data/exports"
+
+  checkpoints_dir: "./outputs/checkpoints"
+  logs_dir: "./outputs/logs"
+  figures_dir: "./outputs/figures"
+  predictions_dir: "./outputs/predictions"
+  metrics_dir: "./outputs/metrics"
+  samples_dir: "./outputs/samples"
+  reports_dir: "./outputs/reports"
+
+experiment:
+  run_name_template: "{date}_{task}_{model_tag}"
+  model_tag: "resnet9_patchgan_bboxcrop"
+  tags:
+    - "seminar"
+    - "gan"
+    - "medical-imaging"
+    - "rsna"
+    - "weak-supervision"
+    - "patchgan"
+    - "resnet9"
+    - "pneumonia-visibility"
+
+logging:
+  log_level: "INFO"
+  log_to_file: true
+  log_to_stdout: true
+  save_yaml_snapshot: true
+  save_git_commit_if_available: true
+  save_command_line_args: true
+  tensorboard:
+    enabled: true
+    subdir: "tensorboard"
+  csv:
+    enabled: true
+    filename: "training_log.csv"
+
+debug:
+  enabled: false
+  fast_dev_run: false
+  limit_train_batches: null
+  limit_val_batches: null
+  overfit_single_batch: false
+  save_extra_debug_images: true
+
+reproducibility:
+  save_split_manifest: true
+  save_class_distribution_report: true
+  save_preprocessing_stats: true

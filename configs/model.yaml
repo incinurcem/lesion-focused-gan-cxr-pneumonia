@@ -1,0 +1,125 @@
+#h
+model:
+  family: "conditional_gan"
+  task_formulation: "weakly_supervised_visibility_translation"
+  input_type: "paired_pseudo_target"
+  output_type: "single_channel_visibility_enhanced_image"
+
+generator:
+  name: "resnet_9blocks_generator"
+  in_channels: 2
+  out_channels: 1
+  base_channels: 64
+  n_downsampling: 2
+  n_residual_blocks: 9
+  norm: "instance"
+  activation: "relu"
+  final_activation: "sigmoid"
+  padding: "reflect"
+  use_dropout: false
+  init_type: "normal"
+  init_gain: 0.02
+
+  encoder:
+    conv_kernel: 7
+    downsample_kernel: 3
+    downsample_stride: 2
+
+  residual_block:
+    kernel_size: 3
+    padding: "reflect"
+    use_bias: false
+
+  decoder:
+    upsample_mode: "transpose_conv"
+    upsample_kernel: 3
+    upsample_stride: 2
+    output_kernel: 7
+
+discriminator:
+  name: "bbox_expanded_conditional_patchgan"
+  discriminator_type: "patchgan"
+  operating_space: "expanded_bbox_crop"
+  condition_mode: "concat_condition_and_output"
+  in_channels: 3
+  base_channels: 64
+  n_layers: 3
+  norm: "instance"
+  activation: "leaky_relu"
+  leaky_relu_slope: 0.2
+  use_spectral_norm: true
+  init_type: "normal"
+  init_gain: 0.02
+  patch_receptive_field: 70
+
+  crop_policy:
+    positive_samples: "expanded_bbox_crop"
+    negative_samples: "random_crop_same_size_distribution"
+    use_square_crop: true
+    crop_expand_ratio: 0.20
+    allow_multi_bbox_union: true
+    resize_to: [256, 256]
+
+conditioning:
+  enabled: true
+  generator_condition: "full_image_plus_soft_guide"
+  discriminator_condition: "cropped_condition_plus_cropped_output"
+  negative_condition_mask: "zeros"
+
+losses:
+  adversarial:
+    type: "lsgan"
+    weight: 1.0
+
+  reconstruction_l1:
+    enabled: true
+    weight: 50.0
+
+  weighted_l1_in_bbox:
+    enabled: true
+    weight: 30.0
+    positive_only: true
+    inside_bbox_multiplier: 3.0
+    outside_bbox_multiplier: 1.0
+
+  ssim:
+    enabled: true
+    weight: 5.0
+
+  edge_consistency:
+    enabled: true
+    operator: "sobel"
+    weight: 4.0
+
+  total_variation:
+    enabled: true
+    weight: 0.0001
+
+  identity_outside_bbox:
+    enabled: true
+    weight: 8.0
+    positive_only: false
+    preserve_background: true
+
+regularization:
+  label_smoothing: false
+  discriminator_noise_std: 0.0
+  image_buffer:
+    enabled: false
+  gradient_penalty:
+    enabled: false
+
+inference:
+  output_mode: "float_map_and_png"
+  clip_output_to_0_1: true
+  threshold_for_binary_response: 0.55
+  post_blur:
+    enabled: false
+  export_uint8_png: true
+
+ablation_switches:
+  enable_guide_map: true
+  enable_weighted_bbox_loss: true
+  enable_ssim: true
+  enable_edge_consistency: true
+  enable_identity_outside_bbox: true

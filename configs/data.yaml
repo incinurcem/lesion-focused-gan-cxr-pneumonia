@@ -1,0 +1,143 @@
+#h
+dataset:
+  name: "rsna_pneumonia_detection_challenge"
+  image_modality: "CXR"
+  annotation_type: "bbox"
+  patient_id_column: "patientId"
+  target_column: "Target"
+  bbox_columns: ["x", "y", "width", "height"]
+
+  paths:
+    dicom_dir: "./data/rsna/dicom"
+    label_csv: "./data/rsna/stage_2_train_labels.csv"
+    metadata_csv: "./data/rsna/metadata.csv"
+    png_dir: "./data/png"
+    cache_dir: "./data/cache"
+    split_dir: "./data/splits"
+
+split:
+  strategy: "patient_wise_stratified"
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify_by: "patient_level_binary_target"
+  positive_definition: "patient_has_at_least_one_positive_bbox"
+  random_state: 3407
+  save_to_disk: true
+  train_csv: "./data/splits/train.csv"
+  val_csv: "./data/splits/val.csv"
+  test_csv: "./data/splits/test.csv"
+
+sampling:
+  balance_strategy: "moderate_positive_oversampling"
+  positive_oversample_factor: 2.0
+  negative_keep_probability: 0.40
+  allow_all_positives_each_epoch: true
+  hard_positive_repeat_factor: 1.0
+
+dicom_preprocessing:
+  use_voi_lut: true
+  fix_monochrome_inversion: true
+  to_float32: true
+  normalization: "minmax_0_1"
+  percentile_clip:
+    enabled: true
+    low: 0.5
+    high: 99.5
+  resize:
+    enabled: true
+    size: [512, 512]
+    interpolation: "bilinear"
+  save_png_cache: true
+  png_suffix: ".png"
+
+guide_map:
+  enabled: true
+  type: "gaussian_soft_bbox_mask"
+  for_negative_samples: "all_zero_mask"
+  union_multiple_boxes: true
+  bbox_expand_ratio: 0.20
+  clamp_to_image: true
+  gaussian_sigma_mode: "relative_to_bbox"
+  gaussian_sigma_scale: 0.18
+  min_bbox_side_after_expand: 24
+  normalize_to_unit_range: true
+
+pseudo_target:
+  enabled: true
+  target_type: "visibility_enhanced_image"
+  formula: "clip(image * (1 + alpha * guide) + beta * guide, 0, 1)"
+  alpha: 0.55
+  beta: 0.08
+  blur_before_merge:
+    enabled: true
+    kernel_size: 11
+    sigma: 3.5
+  preserve_global_structure: true
+
+roi_crop:
+  enabled: true
+  source: "expanded_bbox"
+  crop_expand_ratio: 0.20
+  make_square: true
+  background_for_negatives: "random_lung_like_crop"
+  minimum_crop_size: 96
+  output_size: [256, 256]
+  pad_if_needed: true
+
+input_builder:
+  mode: "concat_full_image_and_guide"
+  image_channels: 1
+  guide_channels: 1
+  total_input_channels: 2
+  generator_input_tensor_order:
+    - "cxr_norm"
+    - "guide_mask"
+  discriminator_conditioning:
+    type: "concat_input_and_output"
+    crop_level: true
+
+train_augmentations:
+  horizontal_flip: 0.5
+  slight_rotation_degrees: 5
+  slight_translation_ratio: 0.03
+  scale_jitter_ratio: 0.05
+  brightness_contrast:
+    enabled: true
+    brightness_limit: 0.06
+    contrast_limit: 0.06
+    probability: 0.30
+  gaussian_noise:
+    enabled: true
+    std_limit: 0.01
+    probability: 0.15
+  elastic_transform: false
+  coarse_dropout: false
+  ensure_bbox_consistency_after_aug: true
+
+val_test_augmentations:
+  enabled: false
+
+dataloader:
+  train_batch_size: 16
+  val_batch_size: 16
+  test_batch_size: 16
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+  drop_last_train: true
+  drop_last_eval: false
+
+sanity_filters:
+  drop_invalid_bbox_rows: true
+  drop_zero_or_negative_area_boxes: true
+  remove_missing_dicom_files: true
+  keep_negative_no_bbox_rows: true
+  report_invalid_samples: true
+
+exports:
+  save_dataset_summary_json: true
+  save_bbox_stats_csv: true
+  save_preview_grids: true
+  preview_grid_samples: 24
